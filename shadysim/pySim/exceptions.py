@@ -21,13 +21,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from __future__ import absolute_import
 
-import exceptions
-
-
-class NoCardError(exceptions.Exception):
+class NoCardError(Exception):
 	pass
 
-class ProtocolError(exceptions.Exception):
+class ProtocolError(Exception):
 	pass

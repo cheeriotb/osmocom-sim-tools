@@ -8,7 +8,7 @@ ifdef COMSPEC
 else
 	CLASSPATH           = $(JAVACARD_SDK_DIR)/lib/api21.jar:$(JAVACARD_SDK_DIR)/lib/sim.jar
 endif
-JFLAGS              = -target 1.1 -source 1.3 -g -d $(BUILD_CLASSES_DIR) -classpath "$(CLASSPATH)"
+JFLAGS              = -target 1.1 -source 1.3 -J-Duser.language=en -g -d $(BUILD_CLASSES_DIR) -classpath "$(CLASSPATH)"
 JAVA                ?= java
 JC                  ?= javac
 

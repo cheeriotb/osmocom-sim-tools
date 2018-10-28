@@ -21,8 +21,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from __future__ import absolute_import
-
 import serial
 import time
 
@@ -151,7 +149,7 @@ class SerialSimLink(LinkBase):
 
 	def _dbg_print(self, s):
 		if self._debug:
-			print s
+			print(s)
 
 	def _tx_byte(self, b):
 		self._sl.write(b)

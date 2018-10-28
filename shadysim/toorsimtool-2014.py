@@ -74,12 +74,12 @@ def get_imsi():
         imsi_raw = (sc.read_binary(['3f00', '7f20', '6f07'])[0])
         imsi_len = imsi_raw[1]
         imsi = swap_nibbles(imsi_raw[2:])[1:]
-        print ("IMSI: %s" % imsi)
+        print(("IMSI: %s" % imsi))
         return imsi
 
 # Ask the user for the name of the customer
 def get_name():
-        return raw_input("Enter subscriber name: ")
+        return input("Enter subscriber name: ")
 
 def get_next_extension(db):
         cur = db.cursor()
@@ -122,7 +122,7 @@ sl.wait_for_card(newcardonly=args.new_card_required)
 time.sleep(args.sleep_after_insertion)
 
 # Get the ICCID
-print("ICCID: %s" % swap_nibbles(sc.read_binary(['3f00', '2fe2'])[0]))
+print(("ICCID: %s" % swap_nibbles(sc.read_binary(['3f00', '2fe2'])[0])))
 
 if args.pin:
         sc.verify_chv(1, args.pin)
@@ -135,9 +135,9 @@ if args.disable_pin:
 
 if args.dump_phonebook:
         num_records = sc.record_count(['3f00','7f10','6f3a'])
-        print("Phonebook: %d records available" % num_records)
+        print(("Phonebook: %d records available" % num_records))
         for record_id in range(1, num_records + 1):
-                print(sc.read_record(['3f00','7f10','6f3a'], record_id))
+                print((sc.read_record(['3f00','7f10','6f3a'], record_id)))
 
 if args.sqlite_db:
         dbh = sqlite3.connect(args.sqlite_db[0])
@@ -176,7 +176,7 @@ if args.record:
         set_phonebook(5, "Echo test", "722")
 
         extn = get_next_extension(dbh)
-        print("Extension: %s" % extn)
+        print(("Extension: %s" % extn))
 
         dbh.cursor().execute("insert into subscriber (name, imsi, extension, authorized, created, updated) values (?, ?, ?, 1, datetime('now'), datetime('now') );", (name, imsi, extn))
         dbh.commit()

@@ -28,8 +28,8 @@ from pySim.commands import SimCardCommands
 from pySim.utils import swap_nibbles, rpad, b2h, i2h
 try:
 	import argparse
-except Exception, err:
-	print "Missing argparse -- try apt-get install python-argparse"
+except Exception as err:
+	print("Missing argparse -- try apt-get install python-argparse")
 import zipfile
 import time
 import struct
@@ -42,7 +42,7 @@ from Crypto.Cipher import DES3
 #------
 
 def hex_ber_length(data):
-	dataLen = len(data) / 2
+	dataLen = len(data) // 2
 	if dataLen < 0x80:
 		return '%02x' % dataLen
 	dataLen = '%x' % dataLen
@@ -50,7 +50,7 @@ def hex_ber_length(data):
 	if lenDataLen % 2:
 		dataLen = '0' + dataLen
 		lenDataLen = lenDataLen + 1
-	return ('%02x' % (0x80 + (lenDataLen / 2))) + dataLen
+	return ('%02x' % (0x80 + (lenDataLen // 2))) + dataLen
 
 class AppLoaderCommands(object):
 	def __init__(self, transport):
@@ -64,13 +64,13 @@ class AppLoaderCommands(object):
 		if (1):
 			# SIM: select MF/GSM/EF_IMSI and read content (requires keyset two)
 			if not args.smpp:
-				print self.send_wrapped_apdu_rfm_sim('A0A40000023F00' + 'A0A40000027F20' + 'A0A40000026F07' + 'A0B0000009');
+				print(self.send_wrapped_apdu_rfm_sim('A0A40000023F00' + 'A0A40000027F20' + 'A0A40000026F07' + 'A0B0000009'));
 			else:
 				self.send_wrapped_apdu_rfm_sim('A0A40000023F00' + 'A0A40000027F20' + 'A0A40000026F07' + 'A0B0000009');
 		else:
 			# USIM: select MF/GSM/EF_IMSI and read content (requires keyset three)
 			if not args.smpp:
-				print self.send_wrapped_apdu_rfm_usim('00A40004023F00' + '00A40004027F20' + '00A40004026F07' + '00B0000009');
+				print(self.send_wrapped_apdu_rfm_usim('00A40004023F00' + '00A40004027F20' + '00A40004026F07' + '00B0000009'));
 			else:
 				self.send_wrapped_apdu_rfm_usim('00A40004023F00' + '00A40004027F20' + '00A40004026F07' + '00B0000009');
 
@@ -107,13 +107,13 @@ class AppLoaderCommands(object):
 		elif ((spi_1 & 0x03) == 2): # CC
 			len_sig = 8;
 		else:
-			print "Invalid spi_1"
+			print("Invalid spi_1")
 			exit(0);
 
 		pad_cnt = 0;
 		# Padding if Ciphering is used
 		if ((spi_1 & 0x04) != 0): # check ciphering bit
-			len_cipher = 6 + len_sig + (len(data) / 2)
+			len_cipher = 6 + len_sig + (len(data) // 2)
 			pad_cnt = 8 - (len_cipher % 8) # 8 Byte blocksize for DES-CBC (TODO: different padding)
 			# TODO: there is probably a better way to add "pad_cnt" padding bytes
 			for i in range(0, pad_cnt):
@@ -139,12 +139,12 @@ class AppLoaderCommands(object):
 		envelopeData = part_head + part_cnt + data;
 
 		# two bytes CPL, CPL is part of RC/CC/DS
-		envelopeData = ('%04x' % (len(envelopeData) / 2 + len_sig)) + envelopeData
+		envelopeData = ('%04x' % (len(envelopeData) // 2 + len_sig)) + envelopeData
 
 		if (len_sig == 8):
 			# Padding
 			temp_data = envelopeData
-			len_cipher = (len(temp_data) / 2)
+			len_cipher = (len(temp_data) // 2)
 			pad_cnt = 8 - (len_cipher % 8) # 8 Byte blocksize for DES-CBC  (TODO: add different padding)
 			# TODO: there is probably a better way to add "pad_cnt" padding bytes
 			for i in range(0, pad_cnt):
@@ -154,14 +154,14 @@ class AppLoaderCommands(object):
 			iv = binascii.a2b_hex('0000000000000000');
 			cipher = DES3.new(key, DES3.MODE_CBC, iv);
 			ciph = cipher.encrypt(binascii.a2b_hex(temp_data));
-			envelopeData = part_cnt + binascii.b2a_hex(ciph[len(ciph) - 8:]) + data;
+			envelopeData = part_cnt + str(binascii.b2a_hex(ciph[len(ciph) - 8:]), 'utf-8') + data;
 		elif (len_sig == 4):
 			crc32 = binascii.crc32(binascii.a2b_hex(envelopeData))
 			envelopeData = part_cnt + ('%08x' % (crc32 & 0xFFFFFFFF)) + data;
 		elif (len_sig == 0):
 			envelopeData = part_cnt + data;
 		else:
-			print "Invalid len_sig"
+			print("Invalid len_sig")
 			exit(0)
 
 		# Ciphering (CNTR + PCNTR + RC/CC/DS + data)
@@ -171,7 +171,7 @@ class AppLoaderCommands(object):
 			iv = binascii.a2b_hex('0000000000000000');
 			cipher = DES3.new(key, DES3.MODE_CBC, iv);
 			ciph = cipher.encrypt(binascii.a2b_hex(envelopeData));
-			envelopeData = part_head + binascii.b2a_hex(ciph)
+			envelopeData = part_head + str(binascii.b2a_hex(ciph), 'utf-8')
 		else:
 			envelopeData = part_head + envelopeData;
 
@@ -187,18 +187,18 @@ class AppLoaderCommands(object):
 		# two bytes CPL
 		# no CHI
 		#
-		envelopeData = '027000' + ('%04x' % (len(envelopeData) / 2)) + envelopeData;
+		envelopeData = '027000' + ('%04x' % (len(envelopeData) // 2)) + envelopeData;
 
 		# For sending via SMPP, those are the data which can be put into
 		# the "hex" field of the "sendwp" XML file (see examples in libsmpp34).
 
 		if args.smpp:
-			print "SMPP: " + envelopeData;
+			print("SMPP: " + envelopeData);
 			return ('00', '9000');
 
 		# SMS-TDPU header: MS-Delivery, no more messages, TP-UD header, no reply path,
 		# TP-OA = TON/NPI 55667788, TP-PID = SIM Download, BS timestamp
-		envelopeData = '400881556677887ff600112912000004' + ('%02x' % (len(envelopeData) / 2)) + envelopeData;
+		envelopeData = '400881556677887ff600112912000004' + ('%02x' % (len(envelopeData) // 2)) + envelopeData;
 
 		# (82) Device Identities: (83) Network to (81) USIM
 		# (8b) SMS-TPDU 
@@ -206,7 +206,7 @@ class AppLoaderCommands(object):
 		
 		# d1 = SMS-PP Download, d2 = Cell Broadcast Download
 		envelopeData = 'd1' + hex_ber_length(envelopeData) + envelopeData;
-		(response, sw) = self._tp.send_apdu('a0c20000' + ('%02x' % (len(envelopeData) / 2)) + envelopeData)
+		(response, sw) = self._tp.send_apdu('a0c20000' + ('%02x' % (len(envelopeData) // 2)) + envelopeData)
 		if "9e" == sw[0:2]: # more bytes available, get response
 			response = self._tp.send_apdu_checksw('A0C00000' + sw[2:4])[0] # GET RESPONSE
 
@@ -242,8 +242,8 @@ class AppLoaderCommands(object):
 		return response[2:(int(response[0:2],16)*2)+2]
 
 	def delete_aid(self, aid, delete_related=True):
-		aidDesc = '4f' + ('%02x' % (len(aid) / 2)) + aid
-		apdu = '80e400' + ('80' if delete_related else '00') + ('%02x' % (len(aidDesc) / 2)) + aidDesc + '00c0000000'
+		aidDesc = '4f' + ('%02x' % (len(aid) // 2)) + aid
+		apdu = '80e400' + ('80' if delete_related else '00') + ('%02x' % (len(aidDesc) // 2)) + aidDesc + '00c0000000'
 		return self.send_wrapped_apdu_checksw(apdu)
 
 	def load_aid_raw(self, aid, executable, codeSize, volatileDataSize = 0, nonvolatileDataSize = 0):
@@ -252,11 +252,11 @@ class AppLoaderCommands(object):
 			loadParameters = loadParameters + 'c702' ('%04x' % volatileDataSize)
 		if nonvolatileDataSize > 0:
 			loadParameters = loadParameters + 'c802' ('%04x' % nonvolatileDataSize)
-		loadParameters = 'ef' + ('%02x' % (len(loadParameters) / 2)) + loadParameters
+		loadParameters = 'ef' + ('%02x' % (len(loadParameters) // 2)) + loadParameters
 		
 		# Install for load APDU, no security domain or hash specified
-		data = ('%02x' % (len(aid) / 2)) + aid + '0000' + ('%02x' % (len(loadParameters) / 2)) + loadParameters + '0000'
-		self.send_wrapped_apdu_checksw('80e60200' + ('%02x' % (len(data) / 2)) + data + '00c0000000')
+		data = ('%02x' % (len(aid) // 2)) + aid + '0000' + ('%02x' % (len(loadParameters) // 2)) + loadParameters + '0000'
+		self.send_wrapped_apdu_checksw('80e60200' + ('%02x' % (len(data) // 2)) + data + '00c0000000')
 
 		# Load APDUs
 		loadData = 'c4' + hex_ber_length(executable) + executable
@@ -268,7 +268,7 @@ class AppLoaderCommands(object):
 				loadData = loadData[0xd8:]
 				loadBlock = loadBlock + 1
 			else:
-				apdu = '80e880' + ('%02x' % loadBlock) + ('%02x' % (len(loadData) / 2)) + loadData
+				apdu = '80e880' + ('%02x' % loadBlock) + ('%02x' % (len(loadData) // 2)) + loadData
 				loadData = ''
 
 			self.send_wrapped_apdu_checksw(apdu + '00c0000000')
@@ -310,25 +310,25 @@ class AppLoaderCommands(object):
 			elif filename.lower().endswith('reflocation.cap'):
 				reflocation = zipcap.read(filename)
 
-		data = header.encode("hex")
+		data = str(binascii.hexlify(header), 'utf-8')
 		if directory:
-			data = data + directory.encode("hex")
+			data = data + str(binascii.hexlify(directory), 'utf-8')
 		if impt:
-			data = data + impt.encode("hex")
+			data = data + str(binascii.hexlify(impt), 'utf-8')
 		if applet:
-			data = data + applet.encode("hex")
+			data = data + str(binascii.hexlify(applet), 'utf-8')
 		if clas:
-			data = data + clas.encode("hex")
+			data = data + str(binascii.hexlify(clas), 'utf-8')
 		if method:
-			data = data + method.encode("hex")
+			data = data + str(binascii.hexlify(method), 'utf-8')
 		if staticfield:
-			data = data + staticfield.encode("hex")
+			data = data + str(binascii.hexlify(staticfield), 'utf-8')
 		if export:
-			data = data + export.encode("hex")
+			data = data + str(binascii.hexlify(export), 'utf-8')
 		if constpool:
-			data = data + constpool.encode("hex")
+			data = data + str(binascii.hexlify(constpool), 'utf-8')
 		if reflocation:
-			data = data + reflocation.encode("hex")
+			data = data + str(binascii.hexlify(reflocation), 'utf-8')
 
 		return data
 
@@ -338,7 +338,7 @@ class AppLoaderCommands(object):
 	def load_app(self, capfile):
 		data = self.generate_load_file(capfile)
 		aid = self.get_aid_from_load_file(data)
-		self.load_aid_raw(aid, data, len(data) / 2)
+		self.load_aid_raw(aid, data, len(data) // 2)
 
 	def install_app(self, args):
 		loadfile = self.generate_load_file(args.install)
@@ -348,25 +348,25 @@ class AppLoaderCommands(object):
 		if args.enable_sim_toolkit:
 			assert len(args.access_domain) % 2 == 0
 			assert len(args.priority_level) == 2
-			toolkit_params = ('%02x' % (len(args.access_domain) / 2))  + args.access_domain
+			toolkit_params = ('%02x' % (len(args.access_domain) // 2))  + args.access_domain
 			toolkit_params = toolkit_params + args.priority_level + ('%02x' % args.max_timers)
 			toolkit_params = toolkit_params + ('%02x' % args.max_menu_entry_text)
 			toolkit_params = toolkit_params + ('%02x' % args.max_menu_entries) + '0000' * args.max_menu_entries + '0000'
 			if args.tar:
 				assert len(args.tar) % 6 == 0
-				toolkit_params = toolkit_params + ('%02x' % (len(args.tar) / 2)) + args.tar
-			toolkit_params = 'ca' + ('%02x' % (len(toolkit_params) / 2)) + toolkit_params
+				toolkit_params = toolkit_params + ('%02x' % (len(args.tar) // 2)) + args.tar
+			toolkit_params = 'ca' + ('%02x' % (len(toolkit_params) // 2)) + toolkit_params
 
 		assert len(args.nonvolatile_memory_required) == 4
 		assert len(args.volatile_memory_for_install) == 4
 		parameters = 'c802' + args.nonvolatile_memory_required + 'c702' + args.volatile_memory_for_install
 		if toolkit_params:
 			parameters = parameters + toolkit_params
-		parameters = 'ef' + ('%02x' % (len(parameters) / 2)) + parameters + 'c9' + ('%02x' % (len(args.app_parameters) / 2)) + args.app_parameters
+		parameters = 'ef' + ('%02x' % (len(parameters) // 2)) + parameters + 'c9' + ('%02x' % (len(args.app_parameters) // 2)) + args.app_parameters
 		
-		data = ('%02x' % (len(aid) / 2)) + aid + ('%02x' % (len(args.module_aid) / 2)) + args.module_aid + ('%02x' % (len(args.instance_aid) / 2)) + \
-			   args.instance_aid + '0100' + ('%02x' % (len(parameters) / 2)) + parameters + '00'
-		self.send_wrapped_apdu_checksw('80e60c00' + ('%02x' % (len(data) / 2)) + data + '00c0000000')
+		data = ('%02x' % (len(aid) // 2)) + aid + ('%02x' % (len(args.module_aid) // 2)) + args.module_aid + ('%02x' % (len(args.instance_aid) // 2)) + \
+			   args.instance_aid + '0100' + ('%02x' % (len(parameters) // 2)) + parameters + '00'
+		self.send_wrapped_apdu_checksw('80e60c00' + ('%02x' % (len(data) // 2)) + data + '00c0000000')
 #------
 
 parser = argparse.ArgumentParser(description='Tool for Toorcamp SIMs.')
@@ -424,7 +424,7 @@ if not args.smpp:
 
 if not args.smpp:
 	# Get the ICCID
-	print "ICCID: " + swap_nibbles(sc.read_binary(['3f00', '2fe2'])[0])
+	print("ICCID: " + swap_nibbles(sc.read_binary(['3f00', '2fe2'])[0]))
 	ac.send_terminal_profile()
 
 # for RFM testing
@@ -444,16 +444,16 @@ if args.install:
 	ac.install_app(args)
 
 if args.print_info:
-	print "--print-info not implemented yet."
+	print("--print-info not implemented yet.")
 
 if args.disable_pin:
 	sl.send_apdu_checksw('0026000108' + args.disable_pin.encode("hex") + 'ff' * (8 - len(args.disable_pin)))
 
 if args.dump_phonebook:
 	num_records = sc.record_count(['3f00','7f10','6f3a'])
-	print ("Phonebook: %d records available" % num_records)
+	print(("Phonebook: %d records available" % num_records))
 	for record_id in range(1, num_records + 1):
-		print sc.read_record(['3f00','7f10','6f3a'], record_id)
+		print(sc.read_record(['3f00','7f10','6f3a'], record_id))
 
 if args.set_phonebook_entry:
 	num_records = sc.record_count(['3f00','7f10','6f3a'])
@@ -482,11 +482,11 @@ if args.list_applets:
 		state = data[aidlen + 2:aidlen + 4]
 		privs = data[aidlen + 4:aidlen + 6]
 		num_instances = int(data[aidlen + 6:aidlen + 8], 16)
-		print 'AID: ' + aid + ', State: ' + state + ', Privs: ' + privs
+		print('AID: ' + aid + ', State: ' + state + ', Privs: ' + privs)
 		data = data[aidlen + 8:]
 		while num_instances > 0:
 			aidlen = int(data[0:2],16) * 2
 			aid = data[2:aidlen + 2]
-			print "\tInstance AID: " + aid
+			print("\tInstance AID: " + aid)
 			data = data[aidlen + 2:]
 			num_instances = num_instances - 1
