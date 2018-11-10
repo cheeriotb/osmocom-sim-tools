@@ -33,10 +33,11 @@ from pySim.utils import h2i, i2h
 
 class PcscSimLink(LinkBase):
 
-	def __init__(self, reader_number=0):
+	def __init__(self, reader_number=0, verbose=True):
 		r = readers();
 		self._reader = r[reader_number]
 		self._con = self._reader.createConnection()
+		self._verbose = verbose
 
 	def __del__(self):
 		self._con.disconnect()
@@ -70,11 +71,17 @@ class PcscSimLink(LinkBase):
 	def send_apdu_raw(self, pdu):
 		"""see LinkBase.send_apdu_raw"""
 
+		if self._verbose is True:
+			print("C-APDU : " + pdu);
+
 		apdu = h2i(pdu)
 
 		data, sw1, sw2 = self._con.transmit(apdu)
 
 		sw = [sw1, sw2]
+
+		if self._verbose is True:
+			print("R-APDU + SW : " + i2h(data) + i2h(sw));
 
 		# Return value
 		return i2h(data), i2h(sw)
