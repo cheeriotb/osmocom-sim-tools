@@ -66,26 +66,26 @@ class CommandInterface(object):
         if sw[0:2] == '91':
             self.transport.send_apdu('A0120000' + sw[2:4])
             return self.transport.send_apdu('A01400000C810301030002028281030100')
-        return (response, sw);
+        return (response, sw)
 
     def open_logical_channel(self):
         (response, sw) = self.transport.send_apdu('0070000001')
         if sw[0:2] != '90':
-            raise RuntimeError('Unexpected SW for MANAGE CHANNEL : ' + sw);
+            raise RuntimeError('Unexpected SW for MANAGE CHANNEL : ' + sw)
         if len(response) != 2:
-            raise RuntimeError('The size of the response data is wrong : ' + response);
+            raise RuntimeError('The size of the response data is wrong : ' + response)
         return int(response[0:2], 16)
 
     def close_logical_channel(self, channel_number):
         (response, sw) = self.transport.send_apdu('007080' + format(channel_number, '02X'))
         if sw[0:2] != '90':
-            raise RuntimeError('Unexpected SW for MANAGE CHANNEL : ' + sw);
+            raise RuntimeError('Unexpected SW for MANAGE CHANNEL : ' + sw)
 
     def select_application(self, channel_number, aid):
         (response, sw) = self.transport.send_apdu(format(channel_number, '02X') + 'A40400' \
                 + format(len(aid) // 2, '02X') + aid + '00')
         if sw[0:2] != '90':
-            raise RuntimeError('Unexpected SW for SELECT : ' + sw);
+            raise RuntimeError('Unexpected SW for SELECT : ' + sw)
         return response
 
     def select_application_with_check_response(self, channel_number, aid):
@@ -163,9 +163,9 @@ class OmapiTest(object):
         for apdu in no_data_apdu_list:
             (response, sw) = self.commandif.send_apdu(selectable_aid, apdu)
             if len(response) > 0:
-                raise RuntimeError('Unexpected output data is received : ' + response);
+                raise RuntimeError('Unexpected output data is received : ' + response)
             if sw != '9000':
-                raise RuntimeError('SW is not 9000 : ' + sw);
+                raise RuntimeError('SW is not 9000 : ' + sw)
 
         # a. 0xA000000476416E64726F696443545331
         #   iii. The applet should return 256-byte data for the following Transmit APDUs:
@@ -192,9 +192,9 @@ class OmapiTest(object):
         for apdu in data_apdu_list:
             (response, sw) = self.commandif.send_apdu(selectable_aid, apdu)
             if len(response) != (256 * 2):
-                raise RuntimeError('The length of output data is unexpected : ' + response);
+                raise RuntimeError('The length of output data is unexpected : ' + response)
             if sw != '9000':
-                raise RuntimeError('SW is not 9000 : ' + sw);
+                raise RuntimeError('SW is not 9000 : ' + sw)
 
         print('finished: ' + sys._getframe().f_code.co_name)
 
