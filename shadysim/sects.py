@@ -28,6 +28,39 @@ class CommandInterface(object):
     def __init__(self, transport):
         self.transport = transport
 
+    def extract_value(self, response):
+        tag_first = int(response[0:2], 16)
+        response = response[2:]
+
+        # If all the bits 1-5 in the first byte are 1, the tag is encoded in the long format.
+        # The tag number is encoded in the following octets,
+        # where bit 8 of each is 1 if there are more octets, and bits 1–7 encode the tag number.
+        if (tag_first & 0x1F) == 0x1F:
+            while True:
+                tag_subsequent = int(response[0:2], 16)
+                response = response[2:]
+                if (tag_subsequent & 0x80) != 0x80:
+                    break
+
+        length = 0
+        length_byte = int(response[0:2], 16)
+        response = response[2:]
+
+        # The long form consist of 1 initial octet followed by 1 or more subsequent octets,
+        # containing the length. In the initial octet, bit 8 is 1,
+        # and bits 1–7 (excluding the values 0 and 127) encode the number of octets that follow.
+        if length_byte > 127:
+            length_size = length_byte - 128
+            while length_size:
+                length_byte = int(response[0:2], 16)
+                response = response[2:]
+                length = (length << 8) + length_byte
+                length_size -= 1
+        else:
+            length = length_byte
+
+        return (response[:length * 2], response[length * 2:])
+
     def send_terminal_profile(self):
         (response, sw) = self.transport.send_apdu('A010000011FFFF000000000000000000000000000000')
         if sw[0:2] == '91':
@@ -54,6 +87,17 @@ class CommandInterface(object):
         if sw[0:2] != '90':
             raise RuntimeError('Unexpected SW for SELECT : ' + sw);
         return response
+
+    def select_application_with_check_response(self, channel_number, aid):
+        response = self.select_application(channel_number, aid)
+
+        # The length of the select response shall be greater than 2 bytes
+        if len(response) < 3:
+            raise RuntimeError('The size of the response data is wrong : ' + response)
+
+        (target, remain) = self.extract_value(response)
+        while len(target) > 0:
+            (value, target) = self.extract_value(target)
 
     def send_apdu_on_channel(self, channel_number, apdu):
         if len(apdu) < (4 * 2):
@@ -154,8 +198,19 @@ class OmapiTest(object):
 
         print('finished: ' + sys._getframe().f_code.co_name)
 
+    def testLongSelectResponse(self):
+        print('started: ' + sys._getframe().f_code.co_name)
+        aid = 'A000000476416E64726F696443545332'
+
+        channel_number = self.commandif.open_logical_channel()
+        response = self.commandif.select_application_with_check_response(channel_number, aid)
+        self.commandif.close_logical_channel(channel_number)
+
+        print('finished: ' + sys._getframe().f_code.co_name)
+
     def execute_all(self):
         self.testTransmitApdu()
+        self.testLongSelectResponse()
 
 parser = argparse.ArgumentParser(description='Android Secure Element CTS')
 parser.add_argument('-p', '--pcsc', nargs='?', const=0, type=int)
