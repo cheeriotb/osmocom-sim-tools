@@ -61,6 +61,22 @@ class CommandInterface(object):
 
         return (response[:length * 2], response[length * 2:])
 
+    def send_apdu_raw(self, apdu):
+        if len(apdu) < (4 * 2):
+            raise ValueError("Specified C-APDU is too short : " + apdu)
+        (response, sw) = self.transport.send_apdu(apdu)
+        sw1 = int(sw[0:2], 16)
+        if sw1 == 0x6C:
+            (response, sw) = self.transport.send_apdu(apdu[:-2] + sw[2:4])
+            sw1 = int(sw[0:2], 16)
+        output = response
+        while sw1 == 0x61 or sw1 == 0x9F:
+            apdu = apdu[0:2] + 'C00000' + sw[2:4]
+            (response, sw) = self.transport.send_apdu(apdu)
+            output = output + response
+            sw1 = int(sw[0:2], 16)
+        return (output, sw)
+
     def send_terminal_profile(self):
         (response, sw) = self.transport.send_apdu('A010000011FFFF000000000000000000000000000000')
         if sw[0:2] == '91':
@@ -82,7 +98,7 @@ class CommandInterface(object):
             raise RuntimeError('Unexpected SW for MANAGE CHANNEL : ' + sw)
 
     def select_application(self, channel_number, aid):
-        (response, sw) = self.transport.send_apdu(format(channel_number, '02X') + 'A40400' \
+        (response, sw) = self.send_apdu_raw(format(channel_number, '02X') + 'A40400' \
                 + format(len(aid) // 2, '02X') + aid + '00')
         if sw[0:2] != '90':
             raise RuntimeError('Unexpected SW for SELECT : ' + sw)
@@ -100,9 +116,6 @@ class CommandInterface(object):
             (value, target) = self.extract_value(target)
 
     def send_apdu_on_channel(self, channel_number, apdu):
-        if len(apdu) < (4 * 2):
-            raise ValueError("Specified C-APDU is too short : " + apdu)
-
         cla = int(apdu[0:2], 16)
         if channel_number < 4:
             cla = (cla & 0xBC) | channel_number
@@ -115,13 +128,7 @@ class CommandInterface(object):
             raise ValueError("Specified channel number is out of range : " + channel_number)
         apdu = format(cla, '02X') + apdu[2:]
 
-        (response, sw) = self.transport.send_apdu(apdu)
-        output = response
-        while sw[0:2] == '61':
-            apdu = apdu[0:2] + 'C00000' + sw[2:4]
-            (response, sw) = self.transport.send_apdu(apdu)
-            output = output + response
-        return (output, sw)
+        return self.send_apdu_raw(apdu)
 
     def send_apdu(self, aid, apdu):
         channel_number = self.open_logical_channel()
