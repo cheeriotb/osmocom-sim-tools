@@ -215,9 +215,51 @@ class OmapiTest(object):
 
         print('finished: ' + sys._getframe().f_code.co_name)
 
+    def testSegmentedResponseTransmit(self):
+        print('started: ' + sys._getframe().f_code.co_name)
+        selectable_aid = 'A000000476416E64726F696443545331'
+
+        # a. 0xA000000476416E64726F696443545331
+        #   v. The applet should return segmented responses with 0xFF as the last data byte and
+        #      have the respective status words and response lengths for the following APDUs:
+        #         i.0x00C2080000
+        #        ii.0x00C4080002123400
+        #       iii.0x00C6080000
+        #        iv.0x00C8080002123400
+        #         v.0x00C27FFF00
+        #        vi.0x00CF080000
+        #       vii.0x94C2080000
+
+        segmented_response_apdu_list = [
+            '00C2080000',
+            '00C4080002123400',
+            '00C6080000',
+            '00C8080002123400',
+            '00C27FFF00',
+            '00CF080000',
+            '94C2080000'
+        ]
+
+        for apdu in segmented_response_apdu_list:
+            (response, sw) = self.commandif.send_apdu(selectable_aid, apdu)
+
+            # P1 + P2 indicates the expected length of the output data.
+            if len(response) != (int(apdu[4:8], 16) * 2):
+                raise RuntimeError('Unexpected length of data is received : ' + str(len(response)))
+
+            # The last data byte shall be 0xFF though the other bytes are not cared at all.
+            if int(response[-2:], 16) != 0xFF:
+                raise RuntimeError('Unexpected byte is received : ' + response[-2:])
+
+            if sw != '9000':
+                raise RuntimeError('SW is not 9000 : ' + sw)
+
+        print('finished: ' + sys._getframe().f_code.co_name)
+
     def execute_all(self):
         self.testTransmitApdu()
         self.testLongSelectResponse()
+        self.testSegmentedResponseTransmit()
 
 parser = argparse.ArgumentParser(description='Android Secure Element CTS')
 parser.add_argument('-p', '--pcsc', nargs='?', const=0, type=int)
