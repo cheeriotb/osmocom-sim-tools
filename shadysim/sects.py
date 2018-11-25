@@ -256,10 +256,59 @@ class OmapiTest(object):
 
         print('finished: ' + sys._getframe().f_code.co_name)
 
+    def testStatusWordTransmit(self):
+        print('started: ' + sys._getframe().f_code.co_name)
+        selectable_aid = 'A000000476416E64726F696443545331'
+
+        # a. 0xA000000476416E64726F696443545331
+        #   iv. The applet should return the following status word responses
+        #       for the respective Transmit APDU:
+        #
+        #       ... (see https://source.android.com/compatibility/cts/secure-element)
+        #
+        #       * The response should contain data that is the same as input APDU,
+        #         except the first byte is 0x01 instead of 0x00.
+
+        apdu_list = [
+            '00F30006',
+            '00F3000A01AA',
+            '00F3000800',
+            '00F3000C01AA00',
+        ]
+
+        warning_sw_list = [
+                '6200', '6281', '6282', '6283', '6285', '62F1', '62F2', '63F1',
+                '63F2', '63C2', '6202', '6280', '6284', '6286', '6300', '6381'
+        ]
+
+        for apdu in apdu_list:
+            for p1 in range(0x10):
+                apdu = apdu[:4] + format(p1 + 1, '02X') + apdu[6:]
+                (response, sw) = self.commandif.send_apdu(selectable_aid, apdu)
+
+                if sw.upper() != warning_sw_list[p1]:
+                    raise RuntimeError('Unexpected warning SW : ' + sw)
+
+                p2 = apdu[6:8]
+                if p2 in {'06', '0A'}:
+                    if len(response) > 0:
+                        raise RuntimeError('Unexpected outgoing data : ' + response)
+                elif p2 == '08':
+                    if len(response) == 0:
+                        raise RuntimeError('Outgoing data is expected')
+                elif p2 == '0C':
+                    if apdu[2:] != response[2:len(apdu)].upper():
+                        raise RuntimeError('Outgoing data is different from APDU')
+                else:
+                    raise RuntimeError('Program error - P2 : ' + p2)
+
+        print('finished: ' + sys._getframe().f_code.co_name)
+
     def execute_all(self):
         self.testTransmitApdu()
         self.testLongSelectResponse()
         self.testSegmentedResponseTransmit()
+        self.testStatusWordTransmit()
 
 parser = argparse.ArgumentParser(description='Android Secure Element CTS')
 parser.add_argument('-p', '--pcsc', nargs='?', const=0, type=int)
