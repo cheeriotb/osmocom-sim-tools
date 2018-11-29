@@ -67,7 +67,11 @@ class CommandInterface(object):
         (response, sw) = self.transport.send_apdu(apdu)
         sw1 = int(sw[0:2], 16)
         if sw1 == 0x6C:
-            (response, sw) = self.transport.send_apdu(apdu[:-2] + sw[2:4])
+            if len(apdu) > 8:
+                apdu = apdu[:-2] + sw[2:4]
+            else:
+                apdu = apdu[:8] + sw[2:4]
+            (response, sw) = self.transport.send_apdu(apdu)
             sw1 = int(sw[0:2], 16)
         output = response
         while sw1 == 0x61 or sw1 == 0x9F:
@@ -304,11 +308,25 @@ class OmapiTest(object):
 
         print('finished: ' + sys._getframe().f_code.co_name)
 
+    def testP2Value(self):
+        print('started: ' + sys._getframe().f_code.co_name)
+        selectable_aid = 'A000000476416E64726F696443545331'
+        apdu = '00F40000'
+
+        (response, sw) = self.commandif.send_apdu(selectable_aid, apdu)
+        if response != '00':
+            raise RuntimeError('Unexpected outgoing data : ' + response)
+        if sw != '9000':
+            raise RuntimeError('Unexpected status word : ' + sw)
+
+        print('finished: ' + sys._getframe().f_code.co_name)
+
     def execute_all(self):
         self.testTransmitApdu()
         self.testLongSelectResponse()
         self.testSegmentedResponseTransmit()
         self.testStatusWordTransmit()
+        self.testP2Value()
 
 parser = argparse.ArgumentParser(description='Android Secure Element CTS')
 parser.add_argument('-p', '--pcsc', nargs='?', const=0, type=int)
