@@ -145,9 +145,8 @@ class OmapiTest(object):
     def __init__(self, commandif):
         self.commandif = commandif
 
-    def testTransmitApdu(self):
+    def testTransmitApdu(self, aid):
         print('started: ' + sys._getframe().f_code.co_name)
-        selectable_aid = 'A000000476416E64726F696443545331'
 
         # a. 0xA000000476416E64726F696443545331
         #   ii.The applet should return no data when it receives the following APDUs in Transmit:
@@ -172,7 +171,7 @@ class OmapiTest(object):
         ]
 
         for apdu in no_data_apdu_list:
-            (response, sw) = self.commandif.send_apdu(selectable_aid, apdu)
+            (response, sw) = self.commandif.send_apdu(aid, apdu)
             if len(response) > 0:
                 raise RuntimeError('Unexpected output data is received : ' + response)
             if sw != '9000':
@@ -201,7 +200,7 @@ class OmapiTest(object):
         ]
 
         for apdu in data_apdu_list:
-            (response, sw) = self.commandif.send_apdu(selectable_aid, apdu)
+            (response, sw) = self.commandif.send_apdu(aid, apdu)
             if len(response) != (256 * 2):
                 raise RuntimeError('The length of output data is unexpected : ' + response)
             if sw != '9000':
@@ -209,9 +208,8 @@ class OmapiTest(object):
 
         print('finished: ' + sys._getframe().f_code.co_name)
 
-    def testLongSelectResponse(self):
+    def testLongSelectResponse(self, aid):
         print('started: ' + sys._getframe().f_code.co_name)
-        aid = 'A000000476416E64726F696443545332'
 
         channel_number = self.commandif.open_logical_channel()
         response = self.commandif.select_application_with_check_response(channel_number, aid)
@@ -219,9 +217,8 @@ class OmapiTest(object):
 
         print('finished: ' + sys._getframe().f_code.co_name)
 
-    def testSegmentedResponseTransmit(self):
+    def testSegmentedResponseTransmit(self, aid):
         print('started: ' + sys._getframe().f_code.co_name)
-        selectable_aid = 'A000000476416E64726F696443545331'
 
         # a. 0xA000000476416E64726F696443545331
         #   v. The applet should return segmented responses with 0xFF as the last data byte and
@@ -245,7 +242,7 @@ class OmapiTest(object):
         ]
 
         for apdu in segmented_response_apdu_list:
-            (response, sw) = self.commandif.send_apdu(selectable_aid, apdu)
+            (response, sw) = self.commandif.send_apdu(aid, apdu)
 
             # P1 + P2 indicates the expected length of the output data.
             if len(response) != (int(apdu[4:8], 16) * 2):
@@ -260,9 +257,8 @@ class OmapiTest(object):
 
         print('finished: ' + sys._getframe().f_code.co_name)
 
-    def testStatusWordTransmit(self):
+    def testStatusWordTransmit(self, aid):
         print('started: ' + sys._getframe().f_code.co_name)
-        selectable_aid = 'A000000476416E64726F696443545331'
 
         # a. 0xA000000476416E64726F696443545331
         #   iv. The applet should return the following status word responses
@@ -288,7 +284,7 @@ class OmapiTest(object):
         for apdu in apdu_list:
             for p1 in range(0x10):
                 apdu = apdu[:4] + format(p1 + 1, '02X') + apdu[6:]
-                (response, sw) = self.commandif.send_apdu(selectable_aid, apdu)
+                (response, sw) = self.commandif.send_apdu(aid, apdu)
 
                 if sw.upper() != warning_sw_list[p1]:
                     raise RuntimeError('Unexpected warning SW : ' + sw)
@@ -308,12 +304,11 @@ class OmapiTest(object):
 
         print('finished: ' + sys._getframe().f_code.co_name)
 
-    def testP2Value(self):
+    def testP2Value(self, aid):
         print('started: ' + sys._getframe().f_code.co_name)
-        selectable_aid = 'A000000476416E64726F696443545331'
         apdu = '00F40000'
 
-        (response, sw) = self.commandif.send_apdu(selectable_aid, apdu)
+        (response, sw) = self.commandif.send_apdu(aid, apdu)
         if response != '00':
             raise RuntimeError('Unexpected outgoing data : ' + response)
         if sw != '9000':
@@ -322,11 +317,34 @@ class OmapiTest(object):
         print('finished: ' + sys._getframe().f_code.co_name)
 
     def execute_all(self):
-        self.testTransmitApdu()
-        self.testLongSelectResponse()
-        self.testSegmentedResponseTransmit()
-        self.testStatusWordTransmit()
-        self.testP2Value()
+
+        selectable_aids = [
+            'A000000476416E64726F696443545331',
+            'A000000476416E64726F696443545332',
+            'A000000476416E64726F696443545340',
+            'A000000476416E64726F696443545341',
+            'A000000476416E64726F696443545342',
+            'A000000476416E64726F696443545343',
+            'A000000476416E64726F696443545344',
+            'A000000476416E64726F696443545345',
+            'A000000476416E64726F696443545346',
+            'A000000476416E64726F696443545347',
+            'A000000476416E64726F696443545348',
+            'A000000476416E64726F696443545349',
+            'A000000476416E64726F69644354534A',
+            'A000000476416E64726F69644354534B',
+            'A000000476416E64726F69644354534C',
+            'A000000476416E64726F69644354534D',
+            'A000000476416E64726F69644354534E',
+            'A000000476416E64726F69644354534F',
+        ]
+
+        for aid in selectable_aids:
+            self.testTransmitApdu(aid)
+            self.testLongSelectResponse(aid)
+            self.testSegmentedResponseTransmit(aid)
+            self.testStatusWordTransmit(aid)
+            self.testP2Value(aid)
 
 parser = argparse.ArgumentParser(description='Android Secure Element CTS')
 parser.add_argument('-p', '--pcsc', nargs='?', const=0, type=int)
