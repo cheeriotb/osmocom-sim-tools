@@ -1,55 +1,54 @@
-# Shadytel SIM Tools
+# osmocom-sim-tools
 
-This is a version of the Shadytel Shadysim tools modified and enhanced
-for the use with the
-[sysmoUSIM-SJS1 sim cards](https://osmocom.org/projects/cellular-infrastructure/wiki/SysmoUSIM-SJS1)
+This is a fork project of OSMOCOM SIM Tools.
+There is nothing special added from the functionality viewpoint, but just an adaptation to Python 3 (3.7.0) was done.
+Please check the bottom of this file and refer to the original project to have a good understanding regarding the setup and the usage.
 
-Contrary to the cards used by the original Shadtyel tools, the
-sysmoUSIM-SJS1 have OTA security enabled and require the use of KIC/KID
-to authenticate + encrypt the PDUs of the Remote Application Management
-(RAM).
+# Usage examples
 
-## GIT Repository
+The command usages in this readme file are kind of examples with the following conditions.
 
-You can clone from the Osmocom sim-tools.git repository using
+- Terminal Interface
+    - Use PC/SC interface between the terminal and the card.
 
-	git clone git://git.osmocom.org/sim/sim-tools.git
+- TELECOM Keys
+    - The KIc of the card is 9A665E9CDA096DAE9C04894785EB0B18.
+    - The KID of the card is 1A8DD88431450CAF8D3719F6380F0A18.
 
-There is a cgit interface at <http://git.osmocom.org/sim/sim-tools/>
+- Java Card applet and package
 
-## Mailing List
+    - The file name of the applet is "cardlet.cap".
+    - The package AID is A000000476416E64726F6964435453.
+    - The module AID is A000000476416E64726F696443545331.
+    - The instance AID is A000000476416E64726F696443545331.
 
-Discussions related to sim-tools are happening on the
-openbsc@lists.osmocom.org mailing list, please see
-<https://lists.osmocom.org/mailman/listinfo/openbsc> for subscription
-options and the list archive.
+## Load
 
-Please observe the [Osmocom Mailing List
-Rules](https://osmocom.org/projects/cellular-infrastructure/wiki/Mailing_List_Rules)
-when posting.
+    $ python shadysim.py --pcsc -l ./cardlet.cap --kic 9A665E9CDA096DAE9C04894785EB0B18 --kid 1A8DD88431450CAF8D3719F6380F0A18
 
+## Install
 
-## Creating JavaCard STK Applets
+    $ python shadysim.py --pcsc -i ./cardlet.cap --module-aid A000000476416E64726F696443545331 --instance-aid A000000476416E64726F696443545331 --nonvolatile-memory-required 0100 --volatile-memory-for-install 0300 --kic 9A665E9CDA096DAE9C04894785EB0B18 --kid 1A8DD88431450CAF8D3719F6380F0A18
 
-Use the hello-stk example to get started.
+## List
 
-	$ mkdir javacard
-	$ cd javacard
-	$ git clone https://git.osmocom.org/sim/sim-tools
-	$ git clone https://git.osmocom.org/sim/hello-stk
-	$ cd hello-stk
-	$ make
+    $ python shadysim.py --pcsc --list-applets --kic 9A665E9CDA096DAE9C04894785EB0B18 --kid 1A8DD88431450CAF8D3719F6380F0A18
 
-To install the applet onto a SIM card, first set the type of reader you are using.
+## Delete
 
-	# For PCSC readers:
-    $ export SHADYSIM_OPTIONS="--pcsc"
+    $ python shadysim.py --pcsc -d A000000476416E64726F6964435453 --kic 9A665E9CDA096DAE9C04894785EB0B18 --kid 1A8DD88431450CAF8D3719F6380F0A18
 
-	# For USB-serial readers:
-    $ export SHADYSIM_OPTIONS="--serialport /dev/ttyUSB0"
+# Licence
 
-and follow instructions at <https://osmocom.org/projects/cellular-infrastructure/wiki/Shadysimpy>
+This software is released under the GNU General Public License v2.0, see LICENSE.
 
-The shadysim tool has lots of other options.
+# Author
 
-    $ ./sim-tools/bin/shadysim --help
+cheeriotb <cheerio.the.bear@gmail.com>
+
+Please check the original project and its author also.
+
+# Reference
+
+* Original Project
+    * OSMOCOM SIM Tools - https://osmocom.org/projects/cellular-infrastructure/wiki/Shadysimpy
